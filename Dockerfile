@@ -4,7 +4,7 @@ MAINTAINER Brandon R. Stoner <monokrome@monokro.me>
 ENV DEBIAN_FRONTEND noninteractive
 ENV HOME /root
 
-RUN dpkg --add-architecture i386
+# RUN dpkg --add-architecture i386
 # no Upstart or DBus
 # https://github.com/dotcloud/docker/issues/1724#issuecomment-26294856
 RUN apt-mark hold initscripts udev plymouth mountall
