@@ -200,10 +200,6 @@ function Websock() {
         },
 
         // Event Handlers
-        off: function (evt) {
-            this._eventHandlers[evt] = function () {};
-        },
-
         on: function (evt, handler) {
             this._eventHandlers[evt] = handler;
         },

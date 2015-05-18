@@ -28,29 +28,35 @@ describe('Display/Canvas Helper', function () {
 
     describe('checking for cursor uri support', function () {
         beforeEach(function () {
-            this._old_browser_supports_cursor_uris = Util.browserSupportsCursorURIs;
+            this._old_change_cursor = Display.changeCursor;
         });
 
         it('should disable cursor URIs if there is no support', function () {
-            Util.browserSupportsCursorURIs = function () { return false; };
+            Display.changeCursor = function(target) {
+                target.style.cursor = undefined;
+            };
             var display = new Display({ target: document.createElement('canvas'), prefer_js: true, viewport: false });
             expect(display._cursor_uri).to.be.false;
         });
 
         it('should enable cursor URIs if there is support', function () {
-            Util.browserSupportsCursorURIs = function () { return true; };
+            Display.changeCursor = function(target) {
+                target.style.cursor = 'pointer';
+            };
             var display = new Display({ target: document.createElement('canvas'), prefer_js: true, viewport: false });
             expect(display._cursor_uri).to.be.true;
         });
 
         it('respect the cursor_uri option if there is support', function () {
-            Util.browserSupportsCursorURIs = function () { return false; };
+            Display.changeCursor = function(target) {
+                target.style.cursor = 'pointer';
+            };
             var display = new Display({ target: document.createElement('canvas'), prefer_js: true, viewport: false, cursor_uri: false });
             expect(display._cursor_uri).to.be.false;
         });
 
         afterEach(function () {
-            Util.browserSupportsCursorURIs = this._old_browser_supports_cursor_uris;
+            Display.changeCursor = this._old_change_cursor;
         });
     });
 
@@ -59,15 +65,13 @@ describe('Display/Canvas Helper', function () {
         beforeEach(function () {
             display = new Display({ target: document.createElement('canvas'), prefer_js: false, viewport: true });
             display.resize(5, 5);
-            display.viewportChangeSize(3, 3);
-            display.viewportChangePos(1, 1);
+            display.viewportChange(1, 1, 3, 3);
             display.getCleanDirtyReset();
         });
 
         it('should take viewport location into consideration when drawing images', function () {
-            display.set_width(4);
-            display.set_height(4);
-            display.viewportChangeSize(2, 2);
+            display.resize(4, 4);
+            display.viewportChange(0, 0, 2, 2);
             display.drawImage(make_image_canvas(basic_data), 1, 1);
 
             var expected = new Uint8Array(16);
@@ -78,7 +82,7 @@ describe('Display/Canvas Helper', function () {
         });
 
         it('should redraw the left side when shifted left', function () {
-            display.viewportChangePos(-1, 0);
+            display.viewportChange(-1, 0, 3, 3);
             var cdr = display.getCleanDirtyReset();
             expect(cdr.cleanBox).to.deep.equal({ x: 1, y: 1, w: 2, h: 3 });
             expect(cdr.dirtyBoxes).to.have.length(1);
@@ -86,7 +90,7 @@ describe('Display/Canvas Helper', function () {
         });
 
         it('should redraw the right side when shifted right', function () {
-            display.viewportChangePos(1, 0);
+            display.viewportChange(1, 0, 3, 3);
             var cdr = display.getCleanDirtyReset();
             expect(cdr.cleanBox).to.deep.equal({ x: 2, y: 1, w: 2, h: 3 });
             expect(cdr.dirtyBoxes).to.have.length(1);
@@ -94,7 +98,7 @@ describe('Display/Canvas Helper', function () {
         });
 
         it('should redraw the top part when shifted up', function () {
-            display.viewportChangePos(0, -1);
+            display.viewportChange(0, -1, 3, 3);
             var cdr = display.getCleanDirtyReset();
             expect(cdr.cleanBox).to.deep.equal({ x: 1, y: 1, w: 3, h: 2 });
             expect(cdr.dirtyBoxes).to.have.length(1);
@@ -102,7 +106,7 @@ describe('Display/Canvas Helper', function () {
         });
 
         it('should redraw the bottom part when shifted down', function () {
-            display.viewportChangePos(0, 1);
+            display.viewportChange(0, 1, 3, 3);
             var cdr = display.getCleanDirtyReset();
             expect(cdr.cleanBox).to.deep.equal({ x: 1, y: 2, w: 3, h: 2 });
             expect(cdr.dirtyBoxes).to.have.length(1);
@@ -110,7 +114,7 @@ describe('Display/Canvas Helper', function () {
         });
 
         it('should reset the entire viewport to being clean after calculating the clean/dirty boxes', function () {
-            display.viewportChangePos(0, 1);
+            display.viewportChange(0, 1, 3, 3);
             var cdr1 = display.getCleanDirtyReset();
             var cdr2 = display.getCleanDirtyReset();
             expect(cdr1).to.not.deep.equal(cdr2);
@@ -128,40 +132,6 @@ describe('Display/Canvas Helper', function () {
         });
     });
 
-    describe('clipping', function () {
-        var display;
-        beforeEach(function () {
-            display = new Display({ target: document.createElement('canvas'), prefer_js: false, viewport: true });
-            display.resize(4, 3);
-        });
-
-        it('should report true when no max-size and framebuffer > viewport', function () {
-            display.viewportChangeSize(2,2);
-            var clipping = display.clippingDisplay();
-            expect(clipping).to.be.true;
-        });
-
-        it('should report false when no max-size and framebuffer = viewport', function () {
-            var clipping = display.clippingDisplay();
-            expect(clipping).to.be.false;
-        });
-
-        it('should report true when viewport > max-size and framebuffer > viewport', function () {
-            display.viewportChangeSize(2,2);
-            display.set_maxWidth(1);
-            display.set_maxHeight(2);
-            var clipping = display.clippingDisplay();
-            expect(clipping).to.be.true;
-        });
-
-        it('should report true when viewport > max-size and framebuffer = viewport', function () {
-            display.set_maxWidth(1);
-            display.set_maxHeight(2);
-            var clipping = display.clippingDisplay();
-            expect(clipping).to.be.true;
-        });
-    });
-
     describe('resizing', function () {
         var display;
         beforeEach(function () {
@@ -176,87 +146,9 @@ describe('Display/Canvas Helper', function () {
         });
 
         it('should update the viewport dimensions', function () {
-            sinon.spy(display, 'viewportChangeSize');
+            sinon.spy(display, 'viewportChange');
             display.resize(2, 2);
-            expect(display.viewportChangeSize).to.have.been.calledOnce;
-        });
-    });
-
-    describe('rescaling', function () {
-        var display;
-        var canvas;
-
-        beforeEach(function () {
-            display = new Display({ target: document.createElement('canvas'), prefer_js: false, viewport: true });
-            display.resize(4, 3);
-            canvas = display.get_target();
-            document.body.appendChild(canvas);
-        });
-
-        afterEach(function () {
-            document.body.removeChild(canvas);
-        });
-
-        it('should not change the bitmap size of the canvas', function () {
-            display.set_scale(0.5);
-            expect(canvas.width).to.equal(4);
-            expect(canvas.height).to.equal(3);
-        });
-
-        it('should change the effective rendered size of the canvas', function () {
-            display.set_scale(0.5);
-            expect(canvas.clientWidth).to.equal(2);
-            expect(canvas.clientHeight).to.equal(2);
-        });
-    });
-
-    describe('autoscaling', function () {
-        var display;
-        var canvas;
-
-        beforeEach(function () {
-            display = new Display({ target: document.createElement('canvas'), prefer_js: false, viewport: true });
-            display.resize(4, 3);
-            canvas = display.get_target();
-            document.body.appendChild(canvas);
-        });
-
-        afterEach(function () {
-            document.body.removeChild(canvas);
-        });
-
-        it('should preserve aspect ratio while autoscaling', function () {
-            display.autoscale(16, 9);
-            expect(canvas.clientWidth / canvas.clientHeight).to.equal(4 / 3);
-        });
-
-        it('should use width to determine scale when the current aspect ratio is wider than the target', function () {
-            expect(display.autoscale(9, 16)).to.equal(9 / 4);
-            expect(canvas.clientWidth).to.equal(9);
-            expect(canvas.clientHeight).to.equal(7); // round 9 / (4 / 3)
-        });
-
-        it('should use height to determine scale when the current aspect ratio is taller than the target', function () {
-            expect(display.autoscale(16, 9)).to.equal(3); // 9 / 3
-            expect(canvas.clientWidth).to.equal(12);  // 16 * (4 / 3)
-            expect(canvas.clientHeight).to.equal(9);
-
-        });
-
-        it('should not change the bitmap size of the canvas', function () {
-            display.autoscale(16, 9);
-            expect(canvas.width).to.equal(4);
-            expect(canvas.height).to.equal(3);
-        });
-
-        it('should not upscale when downscaleOnly is true', function () {
-            expect(display.autoscale(2, 2, true)).to.equal(0.5);
-            expect(canvas.clientWidth).to.equal(2);
-            expect(canvas.clientHeight).to.equal(2);
-
-            expect(display.autoscale(16, 9, true)).to.equal(1.0);
-            expect(canvas.clientWidth).to.equal(4);
-            expect(canvas.clientHeight).to.equal(3);
+            expect(display.viewportChange).to.have.been.calledOnce;
         });
     });
 
