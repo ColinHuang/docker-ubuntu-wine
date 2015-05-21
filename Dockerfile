@@ -20,7 +20,7 @@ RUN apt-get update \
         language-pack-zh-hant language-pack-gnome-zh-hant firefox-locale-zh-hant libreoffice-l10n-zh-tw \
         nginx \
         python-pip python-dev build-essential \
-        apt-get install -y wine1.7 winetricks xvfb
+        apt-get install -y wine1.7 winetricks xvfb \
     && apt-get autoclean \
     && apt-get autoremove \
     && rm -rf /var/lib/apt/lists/*
