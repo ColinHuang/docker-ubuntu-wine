@@ -4,12 +4,10 @@ MAINTAINER Colin
 ENV DEBIAN_FRONTEND noninteractive
 ENV HOME /root
 
-RUN apt-get update -y \
-
 RUN apt-get update \
     && apt-get install -y software-properties-common \
     && add-apt-repository -y ppa:ubuntu-wine/ppa \
-    && apt-get update -y \
+    && apt-get update \
     && apt-get install -y --force-yes --no-install-recommends supervisor \
         openssh-server pwgen sudo vim-tiny \
         net-tools \
@@ -20,7 +18,7 @@ RUN apt-get update \
         language-pack-zh-hant language-pack-gnome-zh-hant firefox-locale-zh-hant libreoffice-l10n-zh-tw \
         nginx \
         python-pip python-dev build-essential \
-        apt-get install -y wine1.7 winetricks xvfb \
+        wine1.7 winetricks xvfb \
     && apt-get autoclean \
     && apt-get autoremove \
     && rm -rf /var/lib/apt/lists/*
