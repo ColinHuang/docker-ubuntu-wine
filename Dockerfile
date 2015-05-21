@@ -4,6 +4,8 @@ MAINTAINER Colin
 ENV DEBIAN_FRONTEND noninteractive
 ENV HOME /root
 
+RUN dpkg --add-architecture i386
+
 RUN apt-get update \
     && apt-get install -y software-properties-common \
     && add-apt-repository -y ppa:ubuntu-wine/ppa \
@@ -18,7 +20,7 @@ RUN apt-get update \
         language-pack-zh-hant language-pack-gnome-zh-hant firefox-locale-zh-hant libreoffice-l10n-zh-tw \
         nginx \
         python-pip python-dev build-essential \
-        wine1.7 winetricks xvfb \
+        wine1.7 winetricks \
     && apt-get autoclean \
     && apt-get autoremove \
     && rm -rf /var/lib/apt/lists/*
